@@ -1,71 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // Import real hooks
-import { useAuth } from '../hooks/useAuth'; // Import real hook
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { Upload, Search, Sun, Moon, User } from 'lucide-react';
 
-// --- REMOVED MOCK NAVIGATION ---
-// --- REMOVED MOCK useAuth HOOK ---
-
-const Header = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
-  const { user, isAuthenticated, getUserInitial } = useAuth(); // Using real hook
-  const navigate = useNavigate(); // Using real hook
-  const location = useLocation(); // Using real hook
+const Header = memo(({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
+  const { user, isAuthenticated, getUserInitial } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sync search query from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     setSearchQuery(params.get('search') || '');
   }, [location.search]);
 
-  // Handle Search (no changes needed)
-  const handleSearch = (e) => {
+  const handleSearch = useCallback((e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
       navigate('/');
     }
-  };
+  }, [searchQuery, navigate]);
 
-  // Handle Auth Click (no changes needed, uses real navigate now)
-  const handleAuthClick = () => {
+  const handleAuthClick = useCallback(() => {
     if (isAuthenticated()) {
-      console.log('Profile button clicked: Navigating to profile...'); // Keep log for confirmation
-      navigate('/profile'); // This will now work
+      navigate('/profile');
     } else {
-      if (openAuthModal) openAuthModal();
-      else console.log("Open Auth Modal triggered");
+      openAuthModal?.();
     }
-  };
+  }, [isAuthenticated, navigate, openAuthModal]);
 
-   // Use props directly, handle potential undefined props
-   const currentTheme = theme || 'dark'; // Default to dark if theme prop is missing
-   const effectiveToggleTheme = toggleTheme || (() => console.log("Toggle Theme (prop missing)"));
-   const effectiveOpenUploadModal = openUploadModal || (() => console.log("Open Upload Modal (prop missing)"));
-   const effectiveOpenAuthModal = openAuthModal || (() => console.log("Open Auth Modal (prop missing)"));
-
+  const handleLogoClick = useCallback(() => {
+    navigate('/');
+  }, [navigate]);
 
   return (
     <header className="header">
       <div className="header-content">
-        {/* Logo */}
         <div
           className="logo"
-          onClick={() => navigate('/')}
-          style={{ cursor: 'pointer' }}
+          onClick={handleLogoClick}
+          role="button"
+          tabIndex={0}
+          onKeyPress={(e) => e.key === 'Enter' && handleLogoClick()}
           aria-label="Go to homepage"
         >
           <div className="logo-icon">💧</div>
           <span className="logo-text">LeakHere</span>
         </div>
 
-        {/* Search Form (Desktop) */}
-        <form onSubmit={handleSearch} className="search-form desktop-only">
-          <Search size={18} className="search-icon" />
+        <form onSubmit={handleSearch} className="search-form">
+          <Search size={18} className="search-icon" aria-hidden="true" />
           <input
             type="search"
-            placeholder="Search..."
+            placeholder="Search media..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
@@ -73,41 +62,27 @@ const Header = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
           />
         </form>
 
-        {/* Search Form (Mobile) */}
-        <form onSubmit={handleSearch} className="search-form mobile-only">
-          <Search size={16} className="search-icon" />
-          <input
-            type="search"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-            aria-label="Search"
-          />
-        </form>
-
-        {/* Actions */}
         <div className="header-actions">
           <button
-            onClick={effectiveOpenUploadModal}
+            onClick={openUploadModal}
             className="btn btn-primary upload-btn"
             title="Upload File"
             aria-label="Upload File"
           >
             <Upload size={16} />
-            <span className="desktop-only btn-text">Upload</span>
+            <span className="btn-text">Upload</span>
           </button>
           <button
-            onClick={effectiveToggleTheme}
-            className="btn btn-secondary theme-toggle-btn"
-            title={`Switch to ${currentTheme === 'dark' ? 'light' : 'dark'} mode`}
-            aria-label={`Switch to ${currentTheme === 'dark' ? 'light' : 'dark'} mode`}
+            onClick={toggleTheme}
+            className="btn btn-secondary icon-btn"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            {currentTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <button
             onClick={handleAuthClick}
-            className="user-btn btn btn-secondary"
+            className="btn btn-secondary user-btn"
             title={isAuthenticated() ? 'Profile' : 'Login / Register'}
             aria-label={isAuthenticated() ? 'View Profile' : 'Login or Register'}
           >
@@ -118,73 +93,250 @@ const Header = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
 
       <style jsx>{`
         .header {
-          padding: 0.75rem 0;
-          margin-bottom: 1.5rem;
-          border-bottom: 1px solid var(--header-border, var(--border-color));
-          background: var(--header-bg, var(--bg-secondary));
-          position: sticky; top: 0; z-index: 100;
+          padding: 1rem 0;
+          margin-bottom: 2rem;
+          border-bottom: 1px solid var(--header-border);
+          background: var(--header-bg);
+          backdrop-filter: blur(12px);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
+
         .header-content {
-          display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-          max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.25rem;
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 2rem;
         }
-        .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; flex-shrink: 0; cursor: pointer; }
-        .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; flex-shrink: 0; }
-        .logo-text { color: var(--text-primary); font-size: 1.25rem; font-weight: 700; }
 
-        /* --- Desktop Search --- */
-        .search-form.desktop-only { position: relative; flex-grow: 1; max-width: 450px; margin: 0 1rem; }
-        .search-form.desktop-only .search-icon { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); z-index: 1; pointer-events: none; }
-        .search-form.desktop-only .search-input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-size: 0.9rem; transition: all 0.2s ease; }
-        .search-form.desktop-only .search-input:focus { outline: none; border-color: var(--accent); background: var(--bg-secondary); box-shadow: 0 0 0 3px var(--accent-light); }
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          flex-shrink: 0;
+          cursor: pointer;
+          transition: transform 0.2s;
+        }
 
-        /* --- Mobile Search (NEW) --- */
-        .search-form.mobile-only { display: none; /* Hidden by default */ position: relative; flex-grow: 1; margin: 0 0.5rem; max-width: 250px; }
-        .search-form.mobile-only .search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); z-index: 1; pointer-events: none; }
-        .search-form.mobile-only .search-input { width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.25rem; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; }
-        .search-form.mobile-only .search-input:focus { outline: none; border-color: var(--accent); background: var(--bg-secondary); }
+        .logo:hover {
+          transform: scale(1.02);
+        }
 
-        /* Common Search Input Clear Button */
-        input[type="search"]::-webkit-search-cancel-button { appearance: none; height: 16px; width: 16px; margin-right: 0.5rem; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a0a0a5'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>"); cursor: pointer; }
+        .logo-icon {
+          width: 42px;
+          height: 42px;
+          background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+          border-radius: var(--radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+        }
 
+        .logo-text {
+          color: var(--text-primary);
+          font-size: 1.375rem;
+          font-weight: 700;
+          letter-spacing: -0.5px;
+        }
 
-        .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
-        /* Desktop Upload Button Text */
-        .upload-btn .btn-text { margin-left: 0.35rem; }
+        .search-form {
+          position: relative;
+          flex-grow: 1;
+          max-width: 500px;
+        }
 
-        /* Base size for icon buttons (Theme, User) */
-        .theme-toggle-btn, .user-btn {
-          width: 38px;
-          height: 38px;
+        .search-icon {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-tertiary);
+          pointer-events: none;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 0.75rem 1rem 0.75rem 2.75rem;
+          background: var(--bg-hover);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-md);
+          color: var(--text-primary);
+          font-size: 0.9375rem;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: var(--accent);
+          background: var(--bg-secondary);
+          box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .search-input::placeholder {
+          color: var(--text-tertiary);
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          flex-shrink: 0;
+        }
+
+        .upload-btn .btn-text {
+          margin-left: 0.25rem;
+        }
+
+        .icon-btn,
+        .user-btn {
+          width: 42px;
+          height: 42px;
           padding: 0;
           font-size: 1rem;
           font-weight: 700;
           flex-shrink: 0;
         }
 
-        /* --- Mobile Styles --- */
-        @media (max-width: 768px) {
-          .header-content { padding: 0 1rem; gap: 0.5rem; }
-          .logo-icon { display: none; }
-          .logo { gap: 0; }
-          .search-form.desktop-only { display: none; }
-          .search-form.mobile-only { display: flex; }
-          .upload-btn { padding: 0; width: 38px; height: 38px; }
-          .upload-btn .btn-text { display: none; }
-          .user-btn.desktop-only { display: none; } /* Ensure this rule exists */
+        @media (max-width: 1024px) {
+          .header-content {
+            padding: 0 1.5rem;
+          }
+
+          .search-form {
+            max-width: 400px;
+          }
         }
 
-        /* Further adjustments for very small screens */
+        @media (max-width: 768px) {
+          .header-content {
+            padding: 0 1rem;
+            gap: 0.75rem;
+          }
+
+          .logo-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.25rem;
+          }
+
+          .logo-text {
+            font-size: 1.125rem;
+          }
+
+          .search-form {
+            max-width: 300px;
+          }
+
+          .search-input {
+            padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+            font-size: 0.875rem;
+          }
+
+          .search-icon {
+            left: 0.875rem;
+          }
+
+          .upload-btn {
+            padding: 0;
+            width: 42px;
+            height: 42px;
+          }
+
+          .upload-btn .btn-text {
+            display: none;
+          }
+
+          .icon-btn,
+          .user-btn {
+            width: 40px;
+            height: 40px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .header {
+            padding: 0.75rem 0;
+            margin-bottom: 1.25rem;
+          }
+
+          .header-content {
+            gap: 0.5rem;
+          }
+
+          .logo-icon {
+            display: none;
+          }
+
+          .logo-text {
+            font-size: 1rem;
+          }
+
+          .search-form {
+            flex: 1;
+            max-width: none;
+          }
+
+          .search-input {
+            padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+            font-size: 0.8125rem;
+          }
+
+          .search-icon {
+            left: 0.75rem;
+            width: 16px;
+            height: 16px;
+          }
+
+          .header-actions {
+            gap: 0.375rem;
+          }
+
+          .upload-btn,
+          .icon-btn,
+          .user-btn {
+            width: 38px;
+            height: 38px;
+          }
+        }
+
         @media (max-width: 480px) {
-           .logo-text { font-size: 1.1rem; }
-           .search-form.mobile-only { margin: 0 0.25rem; max-width: 180px; }
-           .search-form.mobile-only .search-input { font-size: 0.8rem; padding: 0.4rem 0.5rem 0.4rem 2rem; }
-           .search-form.mobile-only .search-icon { left: 0.5rem; }
-           .header-actions { gap: 0.25rem; }
+          .header-content {
+            padding: 0 0.875rem;
+          }
+
+          .search-input {
+            padding: 0.5rem 0.625rem 0.5rem 2rem;
+          }
+
+          .search-icon {
+            left: 0.625rem;
+          }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+          .logo:hover {
+            transform: none;
+          }
+
+          .logo:active {
+            transform: scale(0.98);
+          }
         }
       `}</style>
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;
