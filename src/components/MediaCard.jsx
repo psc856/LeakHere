@@ -170,12 +170,12 @@ const MediaCard = memo(({ file, onClick }) => {
           {file.title || file.file_name || 'Untitled'}
         </h3>
         <div className="media-meta">
-          <span className="meta-item" title={file.uploader_name || 'Unknown'}>
-            <User size={12} /> {file.uploader_name || 'Anonymous'}
+          <span className="meta-item" title={file.uploaded_by || file.uploader_name || file.uploader || 'Unknown'}>
+            <User size={12} /> {file.uploaded_by || file.uploader_name || file.uploader || 'Anonymous'}
           </span>
           <span className="meta-separator">•</span>
-          <span className="meta-item" title={file.uploaded_at}>
-            <Calendar size={12} /> {formatDate(file.uploaded_at)}
+          <span className="meta-item" title={file.uploaded_at || file.created_at}>
+            <Calendar size={12} /> {formatDate(file.uploaded_at || file.created_at)}
           </span>
         </div>
         <div className="media-stats">

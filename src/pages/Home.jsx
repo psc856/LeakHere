@@ -105,7 +105,13 @@ const Home = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
       const response = await filesAPI.getAll(params);
       const newFiles = response.data.files || [];
       const pagination = response.data.pagination;
+      
+      // Debug: Check what fields are available
+      if (newFiles.length > 0) {
+        console.log('File data structure:', newFiles[0]);
+      }
 
+      
       setFiles((prev) => {
         if (reset) return newFiles;
         const existingIds = new Set(prev.map(f => f.file_id));
