@@ -16,17 +16,22 @@ A modern, full-stack media sharing platform built with React and AWS serverless 
 
 ### 🎨 User Interface
 * **Responsive Masonry Grid:** Dynamic grid layout adapts to all screen sizes
-* **Advanced Filtering:** Filter by type (All, Images, Videos, GIFs) with instant results
-* **Smart Sorting:** Sort by Recent, Most Viewed, Downloads, or Most Liked
+* **Advanced Filtering:** Filter by type (All, Images, Videos, GIFs, Documents) with instant results
+* **Smart Sorting:** Sort by Recent, Most Viewed, Downloads, or Most Liked with visible labels on mobile
 * **Real-time Search:** Search media with instant query synchronization
 * **Theme Toggle:** Seamless dark/light mode switching with CSS variables
 * **Video Indicators:** Visual overlays distinguish videos from images
+* **Content Preview Cards:** Display uploader name and upload date on each media card for quick identification
 
 ### 🎬 Media Viewing
 * **Dedicated Media Pages:** Full-screen viewing experience for each media item
-* **Video Playback:** Built-in video player with standard controls
+* **Video Playback:** Shaka Player (Google's open-source player) with adaptive streaming support
+* **Video Preview on Hover:** Auto-play video previews on card hover (desktop)
+* **Document Viewer:** Integrated PDF and Office document preview with zoom controls
 * **Media Details:** Title, description, uploader info, dates, and statistics
 * **Engagement Stats:** View counts, download counts, like counts displayed prominently
+* **Mobile-Optimized Layout:** Seamless card-style design with uploader info and stats below media
+* **Responsive Design:** Efficient spacing and layout optimized for mobile devices
 
 ### 💬 Social Features
 * **Comments System:** Threaded comments with reply support
@@ -44,9 +49,11 @@ A modern, full-stack media sharing platform built with React and AWS serverless 
 ### 📱 User Experience
 * **Infinite Scroll:** Automatic content loading as users scroll
 * **Toast Notifications:** Real-time feedback for all user actions
-* **Loading States:** Smooth loading indicators throughout the app
+* **Loading States:** Smooth loading indicators centered on screen
 * **Error Handling:** Graceful error messages and recovery options
 * **Accessibility:** ARIA labels, keyboard navigation, screen reader support
+* **Mobile-First Design:** Optimized touch interactions and compact layouts
+* **Scroll Indicators:** Visual cues for horizontally scrollable filter groups
 
 ---
 
@@ -66,6 +73,7 @@ UI Components
 ├── lucide-react           # Modern icon library (500+ icons)
 ├── react-masonry-css      # Responsive masonry grid layout
 ├── react-toastify         # Toast notification system
+├── shaka-player           # Google's adaptive video player
 └── styled-jsx            # Component-scoped CSS-in-JS
 ```
 
@@ -178,14 +186,16 @@ Development Tools
   leakhere-media-prod/
   ├── images/
   ├── videos/
-  └── gifs/
+  ├── gifs/
+  └── documents/
   ```
 - **Features:**
-  - Pre-signed URL generation (Lambda)
+  - **Pre-signed URL generation:** Secure, time-limited URLs for direct uploads/downloads
+  - **Direct-to-S3 uploads:** Client uploads directly to S3 using pre-signed URLs
   - Lifecycle policies for old content
   - Versioning enabled
   - Server-side encryption (SSE-S3)
-  - Public read access via CloudFront
+  - CloudFront integration for fast content delivery
 
 #### **Amazon DynamoDB**
 - **Role:** NoSQL database for metadata and user data
@@ -396,8 +406,23 @@ npm run format     # Format code with Prettier
   - Responsive image/video thumbnails
   - Hover effects with smooth transitions
   - Video indicator overlay (play icon)
-  - Lazy loading support
+  - Auto-play video preview on hover (desktop)
+  - Lazy loading support with skeleton loaders
   - Click handler for navigation
+  - Uploader name and upload date display
+
+#### **VideoPlayer Component**
+- **Technology:** Shaka Player (Google's open-source adaptive streaming player)
+- **Features:**
+  - Adaptive bitrate streaming (DASH/HLS support)
+  - Custom UI controls (play/pause, volume, fullscreen, seek bar)
+  - Browser compatibility checks
+  - Automatic quality adjustment
+  - Mobile-optimized playback
+- **Configuration:**
+  ```javascript
+  controlPanelElements: ['play_pause', 'time_and_duration', 'spacer', 'mute', 'volume', 'fullscreen']
+  ```
 
 #### **UploadModal Component**
 - **Features:**
@@ -442,7 +467,9 @@ apiClient.interceptors.request.use((config) => {
 export const filesAPI = {
   getAll: (params) => apiClient.get('/files', { params }),
   getById: (id) => apiClient.get(`/files/${id}`),
+  getPresignedUrl: (data) => apiClient.post('/files/presigned-url', data),
   upload: (formData) => apiClient.post('/files/upload', formData),
+  uploadToS3: (presignedUrl, file) => axios.put(presignedUrl, file),
   delete: (id) => apiClient.delete(`/files/${id}`),
 };
 
@@ -540,6 +567,7 @@ serverless deploy --stage prod
 
 - **Authentication:** JWT tokens with expiration
 - **Authorization:** Role-based access control
+- **Pre-signed URLs:** Time-limited, secure S3 access without exposing credentials
 - **Input Validation:** Server-side validation for all inputs
 - **CORS:** Restricted to frontend domain
 - **Rate Limiting:** API Gateway throttling enabled
@@ -552,6 +580,7 @@ serverless deploy --stage prod
 
 - **Code Splitting:** React.lazy for route-based splitting
 - **Image Optimization:** WebP format, responsive images
+- **Video Optimization:** Shaka Player adaptive streaming, metadata preload, muted autoplay for previews
 - **Caching:** CloudFront for static assets, browser caching
 - **Lazy Loading:** Infinite scroll, intersection observer
 - **Memoization:** useMemo, useCallback for expensive operations
