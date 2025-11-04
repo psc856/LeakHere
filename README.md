@@ -616,7 +616,7 @@ npm run test:e2e
 
 ## 👥 Authors
 
-- **Your Name** - *Prashant Chauhan* - [GitHub](https://github.com/psc856)
+- **Prashant Chauhan** - [GitHub](https://github.com/psc856)
 
 ---
 
