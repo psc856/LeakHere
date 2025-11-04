@@ -7,8 +7,11 @@ import { useAuth } from '../hooks/useAuth';
 import Comment from '../components/Comment';
 import Header from '../components/Header';
 import ReportModal from '../components/ReportModal';
-import videojs from 'video.js';
-import 'video.js/dist/video-js.css';
+import VideoPlayer from '../components/VideoPlayer';
+
+
+
+
 
 // DocumentViewer component (unchanged as it's already well-optimized)
 const DocumentViewer = memo(({ file }) => {
@@ -91,80 +94,7 @@ const DocumentViewer = memo(({ file }) => {
 
 DocumentViewer.displayName = 'DocumentViewer';
 
-// VideoPlayer component with Video.js
-// VideoPlayer component with Video.js
-const VideoPlayer = memo(({ file }) => {
-  const videoRef = useRef(null);
-  const playerRef = useRef(null);
 
-  useEffect(() => {
-    // Wait for next tick to ensure ref is attached
-    const timer = setTimeout(() => {
-      if (!videoRef.current) return;
-
-      // Dispose existing player
-      if (playerRef.current) {
-        try {
-          playerRef.current.dispose();
-        } catch (e) {
-          console.error('Error disposing player:', e);
-        }
-      }
-
-      try {
-        const player = videojs(videoRef.current, {
-          controls: true,
-          autoplay: false,
-          preload: 'auto',
-          fluid: false,
-          responsive: false,
-          aspectRatio: '16:9',
-          playbackRates: [0.5, 1, 1.5, 2],
-          sources: [{
-            src: file.file_url,
-            type: file.content_type || 'video/mp4'
-          }]
-        });
-
-        playerRef.current = player;
-
-        // Handle errors
-        player.on('error', () => {
-          const error = player.error();
-          console.error('Video error:', error);
-          toast.error('Failed to load video');
-        });
-      } catch (error) {
-        console.error('Failed to initialize player:', error);
-      }
-    }, 100);
-
-    return () => {
-      clearTimeout(timer);
-      if (playerRef.current) {
-        try {
-          playerRef.current.dispose();
-          playerRef.current = null;
-        } catch (e) {
-          console.error('Error disposing player on cleanup:', e);
-        }
-      }
-    };
-  }, [file.file_url, file.content_type]);
-
-  return (
-    <div data-vjs-player style={{ width: '100%' }}>
-      <video 
-        ref={videoRef} 
-        className="video-js vjs-big-play-centered" 
-        playsInline
-        data-setup='{}' 
-      />
-    </div>
-  );
-});
-
-VideoPlayer.displayName = 'VideoPlayer';
 
 // Media component (logic unchanged, JSX/CSS updated)
 const Media = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
@@ -322,7 +252,7 @@ const Media = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
           <div className="media-section">
             <div className="media-viewer">
               {isImage && <img src={file.file_url} alt={file.title} className="media-display" loading="lazy" />}
-              {isVideo && <VideoPlayer file={file} />}
+              {isVideo && <VideoPlayer src={file.file_url} type={file.content_type} />}
               {isDocument && <DocumentViewer file={file} />}
             </div>
 
@@ -658,8 +588,7 @@ const Media = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
         .video-js {
           width: 100%;
           height: auto;
-          max-height: 75vh;
-          background: #000;
+          font-family: inherit;
         }
 
         .video-js .vjs-big-play-button {
@@ -667,31 +596,44 @@ const Media = ({ theme, toggleTheme, openUploadModal, openAuthModal }) => {
           width: 80px;
           height: 80px;
           line-height: 80px;
-          border: 3px solid var(--accent);
+          border: 3px solid #6d28d9;
           background: rgba(0, 0, 0, 0.7);
           font-size: 3rem;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
         }
 
-        .video-js .vjs-big-play-button:hover {
-          background: var(--accent);
-          border-color: var(--accent-hover);
+        .video-js:hover .vjs-big-play-button,
+        .video-js .vjs-big-play-button:focus {
+          background: #6d28d9;
+          border-color: #5b21b6;
         }
-
+        
         .video-js .vjs-control-bar {
-          background: rgba(0, 0, 0, 0.8);
+          background: rgba(0, 0, 0, 0.85);
           backdrop-filter: blur(10px);
         }
 
+        .video-js .vjs-play-progress,
+        .video-js .vjs-volume-level {
+          background: #6d28d9;
+        }
+
         .video-js .vjs-slider {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .video-js .vjs-load-progress {
           background: rgba(255, 255, 255, 0.2);
         }
 
-        .video-js .vjs-play-progress {
-          background: var(--accent);
+        .video-js .vjs-menu-button-popup .vjs-menu {
+          background: rgba(0, 0, 0, 0.9);
         }
 
-        .video-js .vjs-volume-level {
-          background: var(--accent);
+        .video-js .vjs-menu li.vjs-selected {
+          background: #6d28d9;
         }
 
         /* Mobile Header (hidden on desktop) */
